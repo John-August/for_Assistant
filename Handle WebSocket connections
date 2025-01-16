@@ -14,11 +14,19 @@ server.on('connection', (ws) => {
 
     function logToServerFile(message) {
         const timestamp = new Date().toISOString();
-        const logMessage = `[${timestamp}] ${message}
-`;
+        const logMessage = `[${timestamp}] ${message}`;
         console.log(message);
         if (serverLogFile) {
             fs.appendFileSync(serverLogFile, logMessage);
         }
     }
+
+    // Other connection handling logic (if required) would go here.
+
+    ws.on('close', () => {
+        activeConnections.delete(ws);
+        console.log('Connection closed.');
+    });
+});
+
 // END Handle WebSocket connections
