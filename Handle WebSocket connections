@@ -1,0 +1,24 @@
+// SRT Handle WebSocket connections
+let completedSessions = [];
+let activeConnections = new Set();
+
+server.on('connection', (ws) => {
+    let sessionDir = null;
+    let serverLogFile = null;
+    let receivedMessages = 0;
+    let isSessionInitialized = false;
+    let isClosed = false;
+    let sessionTimeout;
+
+    activeConnections.add(ws);
+
+    function logToServerFile(message) {
+        const timestamp = new Date().toISOString();
+        const logMessage = `[${timestamp}] ${message}
+`;
+        console.log(message);
+        if (serverLogFile) {
+            fs.appendFileSync(serverLogFile, logMessage);
+        }
+    }
+// END Handle WebSocket connections
