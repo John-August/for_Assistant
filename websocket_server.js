@@ -3,7 +3,6 @@ const WebSocket = require('ws');
 const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
-
 const server = new WebSocket.Server({ port: 8765 });
 
 console.log('WebSocket сервер запущен на ws://127.0.0.1:8765');
@@ -15,6 +14,9 @@ if (!fs.existsSync(logDir)) {
     fs.mkdirSync(logDir, { recursive: true });
     console.log(`[INFO] Создана папка для логов: ${logDir}`);
 }
+
+let completedSessions = [];
+let activeConnections = new Set();
 // END WebSocket server initialization
 // SRT Handle WebSocket connections
 server.on('connection', (ws) => {
