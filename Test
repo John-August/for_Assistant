@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "ChatBox Diag",
+  "version": "0.0",
+  "description": "Extracts chat commands and sends them to a WebSocket server.",
+  "permissions": ["activeTab"],
+  "host_permissions": ["<all_urls>"],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ]
+}
