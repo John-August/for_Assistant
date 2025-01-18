@@ -1,6 +1,46 @@
 
-// WebSocket NoobServer Version 1.01
+// WebSocket server initialization
+const WebSocket = require('ws');
+const fs = require('fs');
+const path = require('path');
+const { exec } = require('child_process');
 
+// WebSocket Server Version 1.01
+const server = new WebSocket.Server({ port: 8765 });
+
+console.log('WebSocket сервер запущен на ws://127.0.0.1:8765');
+
+const logDir = 'C:/logs';
+const sevenZipPath = 'C:/logs/7z.exe';
+
+if (!fs.existsSync(logDir)) {
+    fs.mkdirSync(logDir, { recursive: true });
+    console.log(`[INFO] Создана папка для логов: ${logDir}`);
+}
+
+let completedSessions = [];
+let activeConnections = new Set();
+
+// Handle WebSocket connections
+server.on('connection', (ws) => {
+    let sessionDir = null;
+    let serverLogFile = null;
+    let receivedMessages = 0;
+    let isSessionInitialized = false;
+    let isClosed = false;
+    let sessionTimeout;
+
+    activeConnections.add(ws);
+
+    function logToServerFile(message) {
+        const timestamp = new Date().toISOString();
+        const logMessage = `[${timestamp}] ${message}
+`;
+        console.log(message);
+        if (serverLogFile) {
+            fs.appendFileSync(serverLogFile, logMessage);
+        }
+    }
 
     function initializeSessionDir() {
         if (isSessionInitialized) return;
@@ -86,7 +126,7 @@ function startArchiving() {
 }
 
 
-// Ensure command execution and proper result handling
+// Updated WebSocket server with result transmission to the client
 server.on('connection', (ws) => {
     ws.on('message', (message) => {
         const command = message.toString().trim();
