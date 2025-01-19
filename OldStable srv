@@ -1,11 +1,9 @@
 
-// WebSocket server initialization
 const WebSocket = require('ws');
 const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
 
-// WebSocket Server Version 1.01
 const server = new WebSocket.Server({ port: 8765 });
 
 console.log('WebSocket сервер запущен на ws://127.0.0.1:8765');
@@ -21,7 +19,6 @@ if (!fs.existsSync(logDir)) {
 let completedSessions = [];
 let activeConnections = new Set();
 
-// Handle WebSocket connections
 server.on('connection', (ws) => {
     let sessionDir = null;
     let serverLogFile = null;
@@ -104,7 +101,6 @@ server.on('connection', (ws) => {
     });
 });
 
-// Archiving completed sessions
 function startArchiving() {
     if (completedSessions.length === 0) return;
     const sessionToArchive = completedSessions.shift();
