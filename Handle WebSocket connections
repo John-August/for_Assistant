@@ -1,0 +1,81 @@
+// SRT Handle WebSocket connections
+server.on('connection', (ws) => {
+    let sessionDir = null;
+    let serverLogFile = null;
+    let receivedMessages = 0;
+    let isSessionInitialized = false;
+    let isClosed = false;
+    let sessionTimeout;
+
+    activeConnections.add(ws);
+
+    function logToServerFile(message) {
+        const timestamp = new Date().toISOString();
+        const logMessage = `[${timestamp}] ${message}`;
+        console.log(message);
+        if (serverLogFile) {
+            fs.appendFileSync(serverLogFile, logMessage);
+        }
+    }
+
+    function initializeSessionDir() {
+        if (isSessionInitialized) return;
+        const now = new Date();
+        const localTime = now.toLocaleTimeString('en-US', { hour12: false }).replace(/:/g, '-');
+        sessionDir = path.join(logDir, `session_${localTime}`);
+        serverLogFile = path.join(sessionDir, 'server_log.txt');
+        if (!fs.existsSync(sessionDir)) {
+            fs.mkdirSync(sessionDir);
+            console.log(`[INFO] Создана папка для сессии: ${sessionDir}`);
+        }
+        isSessionInitialized = true;
+    }
+
+    ws.on('message', (message) => {
+        if (isClosed) {
+            console.warn("[WARN] Сообщение от закрытого клиента игнорируется.");
+            return;
+        }
+
+        receivedMessages++;
+        console.log(`[DEBUG] Получено сообщение #${receivedMessages}: ${message.toString().slice(0, 100)}...`);
+
+        initializeSessionDir();
+
+        const messageString = message.toString().trim();
+        if (messageString.startsWith('{') && messageString.endsWith('}')) {
+            try {
+                const parsedMessage = JSON.parse(messageString);
+                const typeSpecificLogFile = path.join(sessionDir, parsedMessage.type === 'log' ? 'plugin_log.json' : 'results_log.json');
+                fs.appendFileSync(typeSpecificLogFile, `${JSON.stringify(parsedMessage.payload, null, 2)}`);
+                logToServerFile(`[INFO] Лог сохранён в файл: ${typeSpecificLogFile}`);
+            } catch (error) {
+                logToServerFile(`[ERROR] Ошибка обработки JSON: ${error.message}`);
+            }
+        }
+
+        clearTimeout(sessionTimeout);
+        sessionTimeout = setTimeout(() => {
+            if (!isClosed) {
+                console.log("[INFO] Таймаут завершения сессии.");
+                ws.close();
+            }
+        }, 5000);
+    });
+
+    ws.on('close', () => {
+        isClosed = true;
+        activeConnections.delete(ws);
+
+        if (sessionDir && fs.existsSync(sessionDir)) {
+            logToServerFile(`[INFO] Клиент отключился, папка для сессии: ${sessionDir}`);
+            completedSessions.push(sessionDir);
+            startArchiving();
+        } else {
+            logToServerFile("[WARN] Клиент отключился, но папка для сессии не была создана.");
+        }
+        console.log(`[DEBUG] Соединение закрыто, обработано сообщений: ${receivedMessages}`);
+        clearTimeout(sessionTimeout);
+    });
+});
+// END Handle WebSocket connections
