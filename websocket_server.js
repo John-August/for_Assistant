@@ -1,3 +1,4 @@
+// WebSocket NoobServer Version 1.0
 // SRT WebSocket server initialization
 const WebSocket = require('ws');
 const fs = require('fs');
