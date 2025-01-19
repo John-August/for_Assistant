@@ -1,0 +1,36 @@
+
+// SRT WebSocket server initialization
+const WebSocket = require('ws');
+const fs = require('fs');
+const path = require('path');
+const { exec } = require('child_process');
+
+const server = new WebSocket.Server({ port: 8765 });
+
+console.log('WebSocket сервер запущен на ws://127.0.0.1:8765');
+
+const logDir = 'C:/logs';
+const sevenZipPath = 'C:/logs/7z.exe';
+
+if (!fs.existsSync(logDir)) {
+    fs.mkdirSync(logDir, { recursive: true });
+    console.log(`[INFO] Создана папка для логов: ${logDir}`);
+}
+
+let completedSessions = [];
+let activeConnections = new Set();
+
+server.on('connection', (ws) => {
+    activeConnections.add(ws);
+    console.log('[INFO] Новое подключение установлено.');
+    
+    ws.on('close', () => {
+        activeConnections.delete(ws);
+        console.log('[INFO] Подключение закрыто.');
+    });
+
+    ws.on('error', (error) => {
+        console.error(`[ERROR] Ошибка WebSocket: ${error.message}`);
+    });
+});
+// END WebSocket server initialization
