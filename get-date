@@ -1,19 +1,35 @@
+
 const WebSocket = require('ws');
+const { exec } = require('child_process');
 
 const ws = new WebSocket('ws://127.0.0.1:8765');
 
 ws.on('open', () => {
-    console.log('Соединение установлено');
-    const command = 'Get-Date'; // Пример команды PowerShell
-    console.log(`Отправляем команду: ${command}`);
-    ws.send(command);
+    console.log('Connected to server');
+    ws.send('Get-Date');
 });
 
 ws.on('message', (message) => {
-    console.log(`Ответ от сервера: ${message}`);
-    ws.close(); // Закрываем соединение после получения ответа
+    console.log(`Received from server: ${message}`);
+    ws.close();
 });
 
 ws.on('close', () => {
-    console.log('Соединение закрыто');
+    console.log('Connection closed');
+});
+
+ws.on('error', (error) => {
+    console.error(`WebSocket error: ${error.message}`);
+});
+
+exec('powershell -Command "Get-Date -Format \"yyyy-MM-dd HH:mm:ss\""', (error, stdout, stderr) => {
+    if (error) {
+        console.error(`Error: ${error.message}`);
+        return;
+    }
+    if (stderr) {
+        console.error(`stderr: ${stderr}`);
+        return;
+    }
+    console.log(`stdout: ${stdout}`);
 });
