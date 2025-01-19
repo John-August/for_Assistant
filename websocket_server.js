@@ -1,9 +1,10 @@
-// WebSocket NoobServer Version 1.0
+// OldStable WebSocket NoobServer
 // SRT WebSocket server initialization
 const WebSocket = require('ws');
 const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
+
 const server = new WebSocket.Server({ port: 8765 });
 
 console.log('WebSocket сервер запущен на ws://127.0.0.1:8765');
@@ -18,6 +19,20 @@ if (!fs.existsSync(logDir)) {
 
 let completedSessions = [];
 let activeConnections = new Set();
+
+server.on('connection', (ws) => {
+    activeConnections.add(ws);
+    console.log('[INFO] Новое подключение установлено.');
+    
+    ws.on('close', () => {
+        activeConnections.delete(ws);
+        console.log('[INFO] Подключение закрыто.');
+    });
+
+    ws.on('error', (error) => {
+        console.error(`[ERROR] Ошибка WebSocket: ${error.message}`);
+    });
+});
 // END WebSocket server initialization
 // SRT Handle WebSocket connections
 server.on('connection', (ws) => {
@@ -68,55 +83,60 @@ server.on('connection', (ws) => {
             try {
                 const parsedMessage = JSON.parse(messageString);
                 const typeSpecificLogFile = path.join(sessionDir, parsedMessage.type === 'log' ? 'plugin_log.json' : 'results_log.json');
-                fs.appendFileSync(typeSpecificLogFile, `${JSON.stringify(parsedMessage.payload, null, 2)}\n`);
+                fs.appendFileSync(typeSpecificLogFile, `${JSON.stringify(parsedMessage.payload, null, 2)}`);
                 logToServerFile(`[INFO] Лог сохранён в файл: ${typeSpecificLogFile}`);
             } catch (error) {
-                logToServerFile(`[ERROR] Невозможно обработать сообщение: ${error.message}`);
+                logToServerFile(`[ERROR] Ошибка обработки JSON: ${error.message}`);
             }
         }
+
+        clearTimeout(sessionTimeout);
+        sessionTimeout = setTimeout(() => {
+            if (!isClosed) {
+                console.log("[INFO] Таймаут завершения сессии.");
+                ws.close();
+            }
+        }, 5000);
     });
 
     ws.on('close', () => {
+        isClosed = true;
         activeConnections.delete(ws);
-        console.log('Connection closed.');
-        if (sessionTimeout) clearTimeout(sessionTimeout);
 
-        if (sessionDir && receivedMessages > 0) {
+        if (sessionDir && fs.existsSync(sessionDir)) {
+            logToServerFile(`[INFO] Клиент отключился, папка для сессии: ${sessionDir}`);
             completedSessions.push(sessionDir);
-            console.log(`[INFO] Сессия завершена и добавлена в очередь архивации: ${sessionDir}`);
             startArchiving();
+        } else {
+            logToServerFile("[WARN] Клиент отключился, но папка для сессии не была создана.");
         }
+        console.log(`[DEBUG] Соединение закрыто, обработано сообщений: ${receivedMessages}`);
+        clearTimeout(sessionTimeout);
     });
-
-    sessionTimeout = setTimeout(() => {
-        if (!isSessionInitialized) {
-            console.warn("[WARN] Сессия завершена из-за таймаута инициализации.");
-            ws.close();
-        }
-    }, 5000); // 5 секунд
 });
 // END Handle WebSocket connections
-// SRT Ensure command execution and proper result handling
+// SRT Ensure command execution and result
 server.on('connection', (ws) => {
     ws.on('message', (message) => {
         const command = message.toString().trim();
-        console.log(`[DEBUG] Received command: ${command}`);
-
-        // Execute the command using exec
-        exec(`powershell.exe -Command "${command}"`, { encoding: 'utf-8' }, (error, stdout, stderr) => {
-            let response;
+        console.log(`[INFO] Получена команда: ${command}`);
+        exec(command, (error, stdout, stderr) => {
             if (error) {
-                response = `Error: ${stderr}`;
-                console.error(`[ERROR] Command execution failed: ${stderr}`);
-            } else {
-                response = stdout.trim();
-                console.log(`[INFO] Command result: ${response}`);
+                console.error(`[ERROR] Ошибка выполнения команды: ${error.message}`);
+                ws.send(`Ошибка: ${error.message}`);
+                return;
             }
-            ws.send(response); // Send the result back to the client
+            if (stderr) {
+                console.error(`[WARN] Предупреждение при выполнении: ${stderr}`);
+                ws.send(`Предупреждение: ${stderr}`);
+                return;
+            }
+            console.log(`[INFO] Результат команды: ${stdout}`);
+            ws.send(`Результат: ${stdout}`);
         });
     });
 });
-// END Ensure command execution and proper result handling
+// END Ensure command execution and result
 // SRT Archiving completed sessions
 function startArchiving() {
     if (completedSessions.length === 0) return;
