@@ -1,9 +1,10 @@
-// WebSocket NoobServer Version 1.0
+// OldStable WebSocket NoobServer
 // SRT WebSocket server initialization
 const WebSocket = require('ws');
 const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
+
 const server = new WebSocket.Server({ port: 8765 });
 
 console.log('WebSocket сервер запущен на ws://127.0.0.1:8765');
@@ -32,7 +33,8 @@ server.on('connection', (ws) => {
 
     function logToServerFile(message) {
         const timestamp = new Date().toISOString();
-        const logMessage = `[${timestamp}] ${message}`;
+        const logMessage = `[${timestamp}] ${message}
+`;
         console.log(message);
         if (serverLogFile) {
             fs.appendFileSync(serverLogFile, logMessage);
@@ -68,52 +70,37 @@ server.on('connection', (ws) => {
             try {
                 const parsedMessage = JSON.parse(messageString);
                 const typeSpecificLogFile = path.join(sessionDir, parsedMessage.type === 'log' ? 'plugin_log.json' : 'results_log.json');
-                fs.appendFileSync(typeSpecificLogFile, `${JSON.stringify(parsedMessage.payload, null, 2)}\n`);
+                fs.appendFileSync(typeSpecificLogFile, `${JSON.stringify(parsedMessage.payload, null, 2)}
+`);
                 logToServerFile(`[INFO] Лог сохранён в файл: ${typeSpecificLogFile}`);
             } catch (error) {
-                logToServerFile(`[ERROR] Невозможно обработать сообщение: ${error.message}`);
+                logToServerFile(`[ERROR] Ошибка обработки JSON: ${error.message}`);
             }
         }
+
+        clearTimeout(sessionTimeout); // Сброс тайм-аута после получения сообщения
+        sessionTimeout = setTimeout(() => {
+            if (!isClosed) {
+                console.log("[INFO] Таймаут завершения сессии.");
+                ws.close();
+            }
+        }, 5000); // 5 секунд
     });
-
-    ws.on('close', () => {
-        activeConnections.delete(ws);
-        console.log('Connection closed.');
-        if (sessionTimeout) clearTimeout(sessionTimeout);
-
-        if (sessionDir && receivedMessages > 0) {
-            completedSessions.push(sessionDir);
-            console.log(`[INFO] Сессия завершена и добавлена в очередь архивации: ${sessionDir}`);
-            startArchiving();
-        }
-    });
-
-    sessionTimeout = setTimeout(() => {
-        if (!isSessionInitialized) {
-            console.warn("[WARN] Сессия завершена из-за таймаута инициализации.");
-            ws.close();
-        }
-    }, 5000); // 5 секунд
-});
 // END Handle WebSocket connections
 // SRT Ensure command execution and proper result handling
-server.on('connection', (ws) => {
-    ws.on('message', (message) => {
-        const command = message.toString().trim();
-        console.log(`[DEBUG] Received command: ${command}`);
+ws.on('close', () => {
+        isClosed = true;
+        activeConnections.delete(ws);
 
-        // Execute the command using exec
-        exec(`powershell.exe -Command "${command}"`, { encoding: 'utf-8' }, (error, stdout, stderr) => {
-            let response;
-            if (error) {
-                response = `Error: ${stderr}`;
-                console.error(`[ERROR] Command execution failed: ${stderr}`);
-            } else {
-                response = stdout.trim();
-                console.log(`[INFO] Command result: ${response}`);
-            }
-            ws.send(response); // Send the result back to the client
-        });
+        if (sessionDir && fs.existsSync(sessionDir)) {
+            logToServerFile(`[INFO] Клиент отключился, папка для сессии: ${sessionDir}`);
+            completedSessions.push(sessionDir);
+            startArchiving();
+        } else {
+            logToServerFile("[WARN] Клиент отключился, но папка для сессии не была создана.");
+        }
+        console.log(`[DEBUG] Соединение закрыто, обработано сообщений: ${receivedMessages}`);
+        clearTimeout(sessionTimeout); // Очистка тайм-аута при завершении сессии
     });
 });
 // END Ensure command execution and proper result handling
