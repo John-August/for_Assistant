@@ -19,20 +19,6 @@ if (!fs.existsSync(logDir)) {
 
 let completedSessions = [];
 let activeConnections = new Set();
-
-server.on('connection', (ws) => {
-    activeConnections.add(ws);
-    console.log('[INFO] Новое подключение установлено.');
-    
-    ws.on('close', () => {
-        activeConnections.delete(ws);
-        console.log('[INFO] Подключение закрыто.');
-    });
-
-    ws.on('error', (error) => {
-        console.error(`[ERROR] Ошибка WebSocket: ${error.message}`);
-    });
-});
 // END WebSocket server initialization
 // SRT Handle WebSocket connections
 server.on('connection', (ws) => {
@@ -47,7 +33,8 @@ server.on('connection', (ws) => {
 
     function logToServerFile(message) {
         const timestamp = new Date().toISOString();
-        const logMessage = `[${timestamp}] ${message}`;
+        const logMessage = `[${timestamp}] ${message}
+`;
         console.log(message);
         if (serverLogFile) {
             fs.appendFileSync(serverLogFile, logMessage);
@@ -83,23 +70,25 @@ server.on('connection', (ws) => {
             try {
                 const parsedMessage = JSON.parse(messageString);
                 const typeSpecificLogFile = path.join(sessionDir, parsedMessage.type === 'log' ? 'plugin_log.json' : 'results_log.json');
-                fs.appendFileSync(typeSpecificLogFile, `${JSON.stringify(parsedMessage.payload, null, 2)}`);
+                fs.appendFileSync(typeSpecificLogFile, `${JSON.stringify(parsedMessage.payload, null, 2)}
+`);
                 logToServerFile(`[INFO] Лог сохранён в файл: ${typeSpecificLogFile}`);
             } catch (error) {
                 logToServerFile(`[ERROR] Ошибка обработки JSON: ${error.message}`);
             }
         }
 
-        clearTimeout(sessionTimeout);
+        clearTimeout(sessionTimeout); // Сброс тайм-аута после получения сообщения
         sessionTimeout = setTimeout(() => {
             if (!isClosed) {
                 console.log("[INFO] Таймаут завершения сессии.");
                 ws.close();
             }
-        }, 5000);
+        }, 5000); // 5 секунд
     });
-
-    ws.on('close', () => {
+// END Handle WebSocket connections
+// SRT Ensure command execution and proper result handling
+ws.on('close', () => {
         isClosed = true;
         activeConnections.delete(ws);
 
@@ -111,32 +100,10 @@ server.on('connection', (ws) => {
             logToServerFile("[WARN] Клиент отключился, но папка для сессии не была создана.");
         }
         console.log(`[DEBUG] Соединение закрыто, обработано сообщений: ${receivedMessages}`);
-        clearTimeout(sessionTimeout);
+        clearTimeout(sessionTimeout); // Очистка тайм-аута при завершении сессии
     });
 });
-// END Handle WebSocket connections
-// SRT Ensure command execution and result
-server.on('connection', (ws) => {
-    ws.on('message', (message) => {
-        const command = message.toString().trim();
-        console.log(`[INFO] Получена команда: ${command}`);
-        exec(command, (error, stdout, stderr) => {
-            if (error) {
-                console.error(`[ERROR] Ошибка выполнения команды: ${error.message}`);
-                ws.send(`Ошибка: ${error.message}`);
-                return;
-            }
-            if (stderr) {
-                console.error(`[WARN] Предупреждение при выполнении: ${stderr}`);
-                ws.send(`Предупреждение: ${stderr}`);
-                return;
-            }
-            console.log(`[INFO] Результат команды: ${stdout}`);
-            ws.send(`Результат: ${stdout}`);
-        });
-    });
-});
-// END Ensure command execution and result
+// END Ensure command execution and proper result handling
 // SRT Archiving completed sessions
 function startArchiving() {
     if (completedSessions.length === 0) return;
