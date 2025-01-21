@@ -1,0 +1,17 @@
+// SRT Ensure command execution and proper result handling
+ws.on('close', () => {
+        isClosed = true;
+        activeConnections.delete(ws);
+
+        if (sessionDir && fs.existsSync(sessionDir)) {
+            logToServerFile(`[INFO] Клиент отключился, папка для сессии: ${sessionDir}`);
+            completedSessions.push(sessionDir);
+            startArchiving();
+        } else {
+            logToServerFile("[WARN] Клиент отключился, но папка для сессии не была создана.");
+        }
+        console.log(`[DEBUG] Соединение закрыто, обработано сообщений: ${receivedMessages}`);
+        clearTimeout(sessionTimeout); // Очистка тайм-аута при завершении сессии
+    });
+});
+// END Ensure command execution and proper result handling
