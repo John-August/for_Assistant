@@ -17,4 +17,4 @@ if (!fs.existsSync(logDir)) {
 
 let completedSessions = [];
 let activeConnections = new Set();
-// END WebSocket server initialization
+// END WebSocket server initialization lol
