@@ -1,6 +1,6 @@
 // Diagnostic Plugin
 // SRT Initialize diagnostics
-const diagnosticVersion = "diagnostic-0.33";
+const diagnosticVersion = "diagnostic-0.34";
 
 console.log(`Diagnostic Test (Version: ${diagnosticVersion})`);
 
@@ -170,3 +170,8 @@ const observer = new MutationObserver((mutations) => {
 
 observer.observe(document.body, { childList: true, subtree: true });
 // END DOM observation for dynamic changes
+
+findAndTestChatBox();
+
+// Diagnostic script version diagnostic-0.34
+console.log("Diagnostic Test Version Updated: diagnostic-0.34");
