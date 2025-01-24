@@ -1,5 +1,5 @@
-// Diagnostic Plugin
-// SRT Initialize diagnostics
+
+// Diagnostic script version diagnostic-0.33.33
 const diagnosticVersion = "diagnostic-0.33";
 
 console.log(`Diagnostic Test (Version: ${diagnosticVersion})`);
@@ -11,8 +11,8 @@ const sessionFinds = new Set();
 const maxAttempts = 50;
 const attemptsPerPage = 100;
 let successfulAttempts = 0;
-// END Initialize diagnostics
-// SRT WebSocket connection with auto-reconnect
+
+// WebSocket connection with auto-reconnect
 let ws;
 function connectWebSocket() {
     ws = new WebSocket("ws://127.0.0.1:8765");
@@ -31,8 +31,8 @@ function connectWebSocket() {
     });
 }
 connectWebSocket();
-// END WebSocket connection with auto-reconnect
-// SRT Utility function to log element information
+
+// Utility function to log element information
 function logElementInfo(element, index) {
     const boundingRect = element.getBoundingClientRect();
     const xpath = getElementXPath(element);
@@ -65,8 +65,8 @@ function logElementInfo(element, index) {
 
     return logEntry;
 }
-// END Utility function to log element information
-// SRT Generate XPath for an element
+
+// Generate XPath for an element
 function getElementXPath(element) {
     if (element.id) {
         return `//*[@id='${element.id}']`;
@@ -85,8 +85,7 @@ function getElementXPath(element) {
     }
     return parts.length ? "/" + parts.join("/") : null;
 }
-// END Generate XPath for an element
-// SRT Find and test chat box
+
 function findAndTestChatBox() {
     const potentialChatBoxes = document.querySelectorAll("textarea, input[type='text'], div[contenteditable='true'], [role='textbox']");
     potentialChatBoxes.forEach((element, index) => {
@@ -138,8 +137,7 @@ function findAndTestChatBox() {
         sendResultsToServer();
     }
 }
-// END Find and test chat box
-// SRT Send results to server
+
 function sendResultsToServer() {
     const metadata = {
         diagnosticVersion,
@@ -157,8 +155,8 @@ function sendResultsToServer() {
         console.warn("WebSocket is not open. Results not sent.");
     }
 }
-// END Send results to server
-// SRT DOM observation for dynamic changes
+
+// DOM observation for dynamic changes
 const observer = new MutationObserver((mutations) => {
     mutations.forEach(mutation => {
         if (mutation.addedNodes && mutation.addedNodes.length > 0) {
@@ -169,4 +167,8 @@ const observer = new MutationObserver((mutations) => {
 });
 
 observer.observe(document.body, { childList: true, subtree: true });
-// END DOM observation for dynamic changes
+
+findAndTestChatBox();
+
+// Diagnostic script version diagnostic-0.33
+console.log("Diagnostic Test Version Updated: diagnostic-0.33");
