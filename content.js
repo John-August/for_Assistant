@@ -170,8 +170,7 @@ const observer = new MutationObserver((mutations) => {
 
 observer.observe(document.body, { childList: true, subtree: true });
 // END DOM observation for dynamic changes
-
+// SRT Main execution
 findAndTestChatBox();
-
-// Diagnostic script version diagnostic-0.34
 console.log("Diagnostic Test Version Updated: diagnostic-0.34");
+// END Main execution
