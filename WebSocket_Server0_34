@@ -1,4 +1,4 @@
-// OldStable WebSocket NoobServer
+// WebSocket_Server0_34
 // SRT WebSocket server initialization
 const WebSocket = require('ws');
 const fs = require('fs');
